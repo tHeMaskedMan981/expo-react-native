@@ -1,0 +1,173 @@
+import React, { Component } from 'react';
+import { Alert, Button, TextInput, View, StyleSheet, Text,AsyncStorage  } from 'react-native';
+
+class User {
+
+  constructor(id,name,venue) {
+    this.id = id;
+    this.name = name;
+    this.venue = venue;
+  }
+
+  sayHi() {
+    alert(this.name);
+  }
+}
+
+let user = new User("John");
+user.sayHi();
+
+export default class App extends Component {
+  constructor(props) {
+    super(props);
+    
+    this.state = {
+      email: '',
+      esummitid: '',
+      status:'not-submitted',
+      email_err:'',
+      id_err:'',
+      myevents:1,
+      myeventid:1,
+      retrieved:0
+    };
+  }
+  
+  _storeData = async () => {
+  
+  let data = this.state.myeventid;
+  this.setState({myeventid:data});
+  data+=1;
+  this.setState({myeventid:data});
+  let user1 = User(data, "speaker","pcsa");
+  data+=1;
+  this.setState({myeventid:data});
+  let user2 = User(data, "speaker2","pcsa2");
+  let users = [];
+  users.push(user1);
+  users.push(user2);
+
+  // let data_string = data.toString();
+  this.setState({myeventid:data});
+  try {
+    await AsyncStorage.setItem('myevents',JSON.stringify(users));
+  } catch (error) {
+    // Error saving data
+      this.setState({email_err:"problem with storage"});
+  }
+}
+
+_retrieveData = async () => {
+  try {
+    this.setState({email_err:"retrieving"});
+    const value = await AsyncStorage.getItem('myevents');
+    let retrivedevents = JSON.parse(value);
+    this.setState({email_err:"retrieving from below"});
+    // this.setState({retrieved:value});
+    if (!(value == null)) {
+      // We have data!!
+      // console.log(value);
+      this.setState({retrieved:retrivedevents[0].name});
+      this.setState({email_err:"retrieving inside function"});
+    }
+   } catch (error) {
+     // Error retrieving data
+     this.setState({email_err:"retrieving problem"});
+   }
+}
+
+  onLogin() {
+    // const { username, password } = this.state;
+    const  email = this.state.email;
+    const  esummitid  = this.state.esummitid;
+
+    Alert.alert('Credentials', `${email} ${esummitid}`);
+    this.setState({status:'submitted'});
+  
+    return fetch('http://esummit.ecell.in/v1/user/login/')
+    .then((response) => response.json())
+    .then((responseJson) => {
+
+      this.setState({
+        isLoading: false,
+        dataSource: responseJson.movies,
+      }, function(){
+
+      });
+
+    })
+    .catch((error) =>{
+      console.error(error);
+    });
+  }
+  
+  render() {
+    return (
+      <View style={styles.container}>
+      <View>
+        <Text> {this.state.myeventid} </Text>
+      </View>
+      <View>
+        <Text> {this.state.myevents} </Text>
+      </View>
+      <View>
+        <Text> {this.state.retrieved}</Text>
+      </View>
+        <TextInput
+          value={this.state.email}
+          onChangeText={ (email) => {
+              this.setState({ email });
+              if (email.search('@')>=0) this.setState({ email_err:"" });
+              else this.setState({ email_err:"Enter a valid E-Mail Address" }); 
+              }}
+          placeholder={'email'}
+          style={styles.input}
+        />
+        <View>
+        <Text> {this.state.email_err} </Text>
+      </View>
+
+        <TextInput
+          value={this.state.esummitid}
+          onChangeText={(esummitid) => this.setState({ esummitid })}
+          placeholder={'esummitid'}
+          secureTextEntry={true}
+          style={styles.input}
+        />
+        
+        <Button
+          title={'Login'}
+          style={styles.input}
+          onPress={this.onLogin.bind(this)}
+        />
+        <Button
+          title={'Store Data'}
+          style={styles.input}
+          onPress={this._storeData.bind(this)}
+        />
+        <Button
+          title={'Retrieve data'}
+          style={styles.input}
+          onPress={this._retrieveData.bind(this)}
+        />
+      </View>
+    );
+  }
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ecf0f1',
+  },
+  input: {
+    width: 200,
+    height: 44,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'black',
+    marginBottom: 10,
+  },
+});
